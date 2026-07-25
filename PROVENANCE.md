@@ -58,7 +58,14 @@ reader, is what closes the gap.
 
 ## Divergence from the live system
 
-Three kinds, each enumerated here in full.
+Four kinds of deliberate divergence, plus one class of drift. This list is
+**derived, not recalled** — every published file was diffed against its live
+original, and the result is the accounting below: 40 byte-identical, 9
+differing (enumerated here), 5 with no live counterpart because this mirror
+wrote them (`README.md`, `PROVENANCE.md`, `LICENSE`, `LICENSE-docs`,
+`.gitignore`). Two earlier versions of this section claimed completeness and
+were wrong; stating the method is the repair, since it makes the claim
+checkable rather than trusted.
 
 1. **Genericized credential — 2 files.** `tools/spine_tier.py` and
    `tools/index_canon_graph.py` differ from their live originals by one line
@@ -81,6 +88,30 @@ Three kinds, each enumerated here in full.
    `conventions/_capkip_CONVENTION.md` (1), and
    `conventions/brief_CONVENTION.md` (1) cited the live paths, which do not
    exist in this layout. Only the paths changed; no wording did.
+
+4. **Spine README renamed — 1 file.** The repo's own README ships as
+   `hololoom_mcp_README.md`, because the `README.md` at this mirror's root is
+   a front door written for the mirror. Listed in that front door's file
+   table; contents unchanged from live at cut time.
+
+**Drift — 4 files are behind live.** The four above are deliberate. These are
+not: the live corpus moved after this subset was staged, and the mirror was
+not re-cut for it. Nothing sensitive is involved — the direction is simply
+old, and it is disclosed rather than quietly reconciled.
+
+- `tools/brief_sweep.py` — lacks a fix for a crash on list-valued `topic`
+  frontmatter. **Run it and you may hit that bug**; live has it fixed.
+- `tools/brief_disposition.py` and `conventions/brief_CONVENTION.md` — predate
+  the `bounced` disposition kind, so the tool cannot record it and the
+  convention does not document it.
+- `hololoom_mcp_README.md` — its orient cost-composition figures were
+  re-measured after the cut and are stale by roughly the amount that section
+  itself warns about.
+
+Re-syncing them would republish files whose human ratification was against
+the earlier text, so the staleness is recorded here instead of silently
+fixed. Anything in `tools/` is best read as *how the method works*, not as a
+maintained dependency.
 
 References to files *outside* this subset are deliberately left as-is and
 will not resolve. They name real parts of the private corpus; rewriting or
