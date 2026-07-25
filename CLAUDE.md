@@ -105,7 +105,7 @@ keep/remove prompt (or `ExitWorktree`) cleans up the worktree.
 
 Narrow before fetching detail. Always.
 
-- `hololoom_orient` (~3k tok) — once per session, at start. A `topic` that exactly names a `lens/<name>.md` pre-loads a curated **reading context** (salience pins + corpus defaults + standing-context prose) instead of the fuzzy thread/decision filter. See `lens/_CONVENTION.md`.
+- `hololoom_orient` (~3k tok) — once per session, at start. A `topic` that exactly names a `lens/<name>.md` pre-loads a curated **reading context** (salience pins + corpus defaults + standing-context prose) instead of the fuzzy thread/decision filter. See `conventions/lens_CONVENTION.md`.
 - `hololoom_search` (~80 tok/result) — semantic, 8 corpora: swarm/sessions/docs/git/code/external/peer_bobbins/chatgpt (default `all` fans all **except** `chatgpt`. `peer_bobbins` = the P3 refusal-consent governance-audit surface; `chatgpt` = Blake's imported ChatGPT/MirrorCore history — opt-in, not in `all`/`timeline`; `swarm` = cleanly Para voice/Matrix, the import + synthetic beekeeping probes excluded.)
 - `hololoom_grep` (~40 tok/match) — literal/regex across repos (when the symbol is the question)
 - `hololoom_codegraph` (~40 tok/result) — Python call graph over the repos (live ast): `callers` / `callees` / `importers` for a symbol. Single-hop, name-resolved (ambiguity + `recv_match` surfaced honestly). Artifact-tier call graph — NOT HippoRAG; reflects committed repo state, not your worktree.
@@ -300,7 +300,7 @@ open-ended briefs) — plus `interpreted_by`/`sid8` provenance. Lifecycle
 unprompted: the `/handoff` brief-sweep (`tools/brief_sweep.py`, step 5) surfaces
 retirable candidates by cheap signals and offers a safe `flip` helper. It
 **surfaces, never decides** — the human confirms each flip, so the
-suggestion-not-directive property holds. Full contract: `handoff/brief/_CONVENTION.md`.
+suggestion-not-directive property holds. Full contract: `conventions/brief_CONVENTION.md`.
 
 ### Capkip (kickoff prompt)
 
@@ -313,7 +313,7 @@ It persists in the **optional** `capkip` field of the handoff
 session** — **never a mandatory handoff step** (that would worsen the
 already-heavy ritual). Suggestion-not-directive downstream: the receiving
 session may reshape or decline it (same guard as WSH). Full shape + worked
-examples: `handoff/brief/_capkip_CONVENTION.md`.
+examples: `conventions/_capkip_CONVENTION.md`.
 
 ### Lenses (reading contexts)
 
@@ -325,7 +325,7 @@ standing-context prose, and layers its declared brief topics onto the brief set.
 WSH briefs; if it ever *gates* what a session may read it has become an org-chart,
 so pull back. No lens match → the existing fuzzy `topic` behaviour, unchanged.
 Full contract + the "pins are salience, not new content" honesty:
-`lens/_CONVENTION.md`. See `project_lens_primitive`.
+`conventions/lens_CONVENTION.md`. See `project_lens_primitive`.
 
 ## Working preferences
 

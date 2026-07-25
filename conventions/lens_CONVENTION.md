@@ -9,7 +9,7 @@ The load-bearing property: **a lens pre-loads; it never restricts.** Loading a
 lens adds curated context — it does not stop a session from searching any corpus
 or reading any pin. The moment a lens *gates* what a session may read, it has
 become the org-chart we declined; pull back. (Same suggestion-not-directive
-guard as WSH briefs — see `handoff/brief/_CONVENTION.md`.)
+guard as WSH briefs — see `conventions/brief_CONVENTION.md`.)
 
 ## Resolution
 

@@ -162,7 +162,7 @@ up* and why, so team-learning doesn't evaporate. (Option B of
 A `claudemd_<slug>.md` brief is a **structural-edit proposal for CLAUDE.md**,
 routed here because CLAUDE.md is top-of-canon-tier and its structural edits go
 through the top-of-canon discipline rather than landing unilaterally (see the
-"CLAUDE.md amendment procedure" section in `hololoom_mcp/CLAUDE.md`). It is a
+"CLAUDE.md amendment procedure" section in `CLAUDE.md`). It is a
 standard WSH brief plus these fields:
 
 | field | meaning |

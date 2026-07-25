@@ -152,7 +152,7 @@ status.
 - `handoff/brief/capkip_convention.md` — the originating WSH brief (the SWOT that
   surfaced capkip as fault-line #3, the option analysis, the recommendation this
   doc implements). Flipped `consumed` when this shipped.
-- `handoff/brief/_CONVENTION.md` — the WSH contract + the continuity-artifact table
+- `conventions/brief_CONVENTION.md` — the WSH contract + the continuity-artifact table
   this one extends.
 - `.claude/skills/handoff/SKILL.md` — the schema carrying the optional `capkip` /
   `owed_to` fields.

@@ -10,10 +10,13 @@
 # Run once, from the worktree's hololoom_mcp/ directory, right after entering
 # the worktree. Idempotent.
 #
-# If the repo ever moves, update CANONICAL_VENV (same as the launchd plists,
-# which also hardcode this path).
+# CANONICAL_VENV is derived, not hardcoded, so this script carries no operator
+# username and survives the repo moving (Gate 5, 2026-07-25). --git-common-dir
+# resolves to the PRIMARY checkout's .git from inside any worktree, which is
+# exactly the "canonical" the name means. (The launchd plists still hardcode
+# the path; they are not shell and are out of this script's reach.)
 set -euo pipefail
-CANONICAL_VENV="/Users/blakechasteen/mythrl-dev/hololoom_mcp/.venv"
+CANONICAL_VENV="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/hololoom_mcp/.venv"
 
 if [ ! -d "$CANONICAL_VENV" ]; then
   echo "wt-venv: canonical .venv missing at $CANONICAL_VENV" >&2

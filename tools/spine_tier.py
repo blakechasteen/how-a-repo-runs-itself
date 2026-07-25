@@ -45,10 +45,31 @@ import re
 import sys
 from pathlib import Path
 
+def _main_checkout_root() -> Path:
+    """Repo root of the PRIMARY checkout, even when run from a worktree.
+
+    Worktrees live at <root>/.claude/worktrees/<name>/, so a worktree copy of
+    this file resolves parents[2] to the worktree rather than the repo. The
+    memory dir is a property of the repo — Claude keys its project scope on
+    the main checkout's path — so normalize back to it.
+    """
+    root = Path(__file__).resolve().parents[2]
+    marker = "/.claude/worktrees/"
+    text = str(root)
+    if marker in text:
+        return Path(text.split(marker)[0])
+    return root
+
+
+# Claude's project-scope slug is the main checkout's path with "/" -> "-".
+# Derived rather than hardcoded so the tool carries no operator username
+# (Gate 5, 2026-07-25) and works on any checkout. Verified byte-identical to
+# the literal it replaced.
 MEMORY_DIR = Path(
     os.environ.get(
         "HOLOLOOM_MEMORY_DIR",
-        "/Users/blakechasteen/.claude/projects/-Users-blakechasteen-mythrl-dev/memory",
+        str(Path.home() / ".claude" / "projects"
+            / str(_main_checkout_root()).replace("/", "-") / "memory"),
     )
 )
 MEMORY_MD = MEMORY_DIR / "MEMORY.md"

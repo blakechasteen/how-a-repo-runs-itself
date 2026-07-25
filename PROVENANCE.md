@@ -58,8 +58,34 @@ reader, is what closes the gap.
 
 ## Divergence from the live system
 
-Two files differ from their live originals by exactly one line each: the
-genericized password default described above. Nothing else was altered.
+Three kinds, each enumerated here in full.
+
+1. **Genericized credential — 2 files.** `tools/spine_tier.py` and
+   `tools/index_canon_graph.py` differ from their live originals by one line
+   each: the database password default described above, replaced with
+   `CHANGE_ME`.
+
+2. **Flattened convention layout — 4 files.** In the live corpus the four
+   `_CONVENTION.md` docs sit beside the things they govern (`handoff/brief/`,
+   `handoff/inbox/`, `lens/`). Publishing those parents would have shipped a
+   directory apiece to hold one file, so they were collected into
+   `conventions/` and disambiguated by name — `brief_CONVENTION.md`,
+   `inbox_CONVENTION.md`, `lens_CONVENTION.md`, `_capkip_CONVENTION.md`.
+   Contents are otherwise unchanged. Where a published doc's *prose* refers to
+   a bare `_CONVENTION.md` — including `_capkip_CONVENTION.md`'s remark about
+   the `_` prefix carrying meaning, which this layout flattens away — it means
+   the brief convention, here at `conventions/brief_CONVENTION.md`.
+
+3. **Cross-reference paths repointed to match — 7 sites.** `CLAUDE.md` (4
+   sites), `conventions/lens_CONVENTION.md` (1),
+   `conventions/_capkip_CONVENTION.md` (1), and
+   `conventions/brief_CONVENTION.md` (1) cited the live paths, which do not
+   exist in this layout. Only the paths changed; no wording did.
+
+References to files *outside* this subset are deliberately left as-is and
+will not resolve. They name real parts of the private corpus; rewriting or
+deleting them would misrepresent both what the method actually cites and what
+was actually published.
 
 ---
 
