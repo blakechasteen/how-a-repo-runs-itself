@@ -284,11 +284,26 @@ in `context_cards.json`, age `recent_decisions` into `architecture`, or cut
 under parallel-session pressure; mechanical caps in `server.py` are the
 last-resort knobs.
 
-Cost composition at typical idle (no fresh canon emission):
-- architecture ~670 tok / glossary ~660 tok — durable, hard to compress further
-- active_threads ~950 tok (cap=3) — fresh-arc-driven, varies with session activity
-- related_sessions ~200 tok (top_k=1) — continuity surface
-- infra_inventory + working_preferences + instructions ~290 tok — fixed
+Cost composition, re-measured 2026-07-25 after a `context_cards.json` tightening
+pass (prior figures were stale — `architecture` had drifted to ~1130 tok and
+`recent_decisions` was never budgeted at all):
+- architecture ~985 tok — durable; the floor rises as the stack grows
+- glossary ~670 tok — durable, hard to compress further
+- recent_decisions ~610 tok — was missing from this table entirely
+- infra_inventory ~425 tok — fixed
+- active_threads ~340–950 tok (cap=3) — fresh-arc-driven, varies with activity
+- related_sessions ~105 tok (top_k=1) — continuity surface; absent in a fresh
+  worktree with no overlapping session
+- working_preferences + instructions + workplan_briefs ~245 tok — fixed
+
+Measured total ~3270 tok in a worktree, ~3370 on `main` (where
+`related_sessions` populates). Re-measure with the snippet above rather than
+trusting these numbers — they drift as entries accumulate status parentheticals.
+
+The drift mechanism to watch: `architecture` and `recent_decisions` summaries
+accrete dated provenance (SHAs, ratification dates, per-clause dispositions)
+that belongs in the pointed-to pin or doc. Orient's job is orientation; the
+pointer is enough. Keep each summary to *what it is + current status + pointer*.
 
 ## Curating context_cards.json
 

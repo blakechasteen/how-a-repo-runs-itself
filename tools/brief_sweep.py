@@ -332,7 +332,12 @@ def compute_signals(path: Path, fm: dict, today: _dt.date, repo: Path,
                          "evidence": f"cooling-off until {co} (in {(co - today).days}d)"})
 
     # touched — brief tokens intersect files this session touched
-    toks = _tokens(fm.get("topic", ""), fm.get("title", ""), path.stem)
+    # as_text: `topic: [a, b]` parses to a real list under inline_lists, which
+    # _tokens' .lower() cannot take (it broke the census the same way). sep=" "
+    # on purpose — _tokens splits on whitespace, so the default ", " would glue a
+    # comma onto the first slug ('alpha,') and it would match no filename.
+    toks = _tokens(frontmatter.as_text(fm.get("topic"), sep=" "),
+                   fm.get("title", ""), path.stem)
     hits = sorted({f for f in touched for t in toks if t in f.lower()})
     if hits:
         ev = ", ".join(hits[:3]) + (" …" if len(hits) > 3 else "")

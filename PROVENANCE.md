@@ -58,14 +58,18 @@ reader, is what closes the gap.
 
 ## Divergence from the live system
 
-Four kinds of deliberate divergence, plus one class of drift. This list is
-**derived, not recalled** — every published file was diffed against its live
-original, and the result is the accounting below: 40 byte-identical, 9
-differing (enumerated here), 5 with no live counterpart because this mirror
-wrote them (`README.md`, `PROVENANCE.md`, `LICENSE`, `LICENSE-docs`,
-`.gitignore`). Two earlier versions of this section claimed completeness and
-were wrong; stating the method is the repair, since it makes the claim
-checkable rather than trusted.
+Four kinds, all deliberate. This list is **derived, not recalled** — every
+published file was diffed against its live original, and the result is the
+accounting below: 42 byte-identical, 7 differing (enumerated here), 5 with no
+live counterpart because this mirror wrote them (`README.md`, `PROVENANCE.md`,
+`LICENSE`, `LICENSE-docs`, `.gitignore`). Two earlier versions of this section
+claimed completeness and were wrong; stating the method is the repair, since
+it makes the claim checkable rather than trusted.
+
+**Synced against live at `b92ac56`.** Four files that had drifted behind live
+were re-synced on 2026-07-25 and the whole subset re-gated (see *Sync point*
+below). Naming the commit is deliberate: it turns "is this current?" from a
+judgment into a diff anyone can run.
 
 1. **Genericized credential — 2 files.** `tools/spine_tier.py` and
    `tools/index_canon_graph.py` differ from their live originals by one line
@@ -92,26 +96,31 @@ checkable rather than trusted.
 4. **Spine README renamed — 1 file.** The repo's own README ships as
    `hololoom_mcp_README.md`, because the `README.md` at this mirror's root is
    a front door written for the mirror. Listed in that front door's file
-   table; contents unchanged from live at cut time.
+   table; contents byte-identical to live at the sync point — the divergence
+   is the name, nothing else.
 
-**Drift — 4 files are behind live.** The four above are deliberate. These are
-not: the live corpus moved after this subset was staged, and the mirror was
-not re-cut for it. Nothing sensitive is involved — the direction is simply
-old, and it is disclosed rather than quietly reconciled.
+## Sync point
 
-- `tools/brief_sweep.py` — lacks a fix for a crash on list-valued `topic`
-  frontmatter. **Run it and you may hit that bug**; live has it fixed.
-- `tools/brief_disposition.py` and `conventions/brief_CONVENTION.md` — predate
-  the `bounced` disposition kind, so the tool cannot record it and the
-  convention does not document it.
-- `hololoom_mcp_README.md` — its orient cost-composition figures were
-  re-measured after the cut and are stale by roughly the amount that section
-  itself warns about.
+Four files had drifted behind live and were re-synced at `b92ac56`:
+`tools/brief_sweep.py` (a crash on list-valued `topic` frontmatter, now
+fixed), `tools/brief_disposition.py` and `conventions/brief_CONVENTION.md`
+(both gained the `bounced` disposition kind), and `hololoom_mcp_README.md`
+(re-measured orient cost figures). The full subset was re-gated on the new
+bytes — secrets scan clean, no third-party-human disclosure, topology
+unchanged at 20 accepted findings with zero absolute paths.
 
-Re-syncing them would republish files whose human ratification was against
-the earlier text, so the staleness is recorded here instead of silently
-fixed. Anything in `tools/` is best read as *how the method works*, not as a
-maintained dependency.
+**One thing deliberately left out of this sync.** Live has since extended
+`brief_disposition.py` to emit each disposition as a signed, chained
+peer-owned bobbin. That extension imports `tools/disposition_sign.py`, which
+is **not** in this published subset — and this emission is deny-by-default, so
+a file does not ship because something else references it. Publishing the
+extension without its dependency would ship an instruction whose mechanism is
+absent. It waits for a slice that carries both, gated on its own terms. The
+copy here is therefore complete and self-consistent rather than current.
+
+That is the general shape: **this mirror is a pinned, self-consistent subset,
+not a live tree.** Anything in `tools/` is best read as *how the method
+works*, not as a maintained dependency.
 
 References to files *outside* this subset are deliberately left as-is and
 will not resolve. They name real parts of the private corpus; rewriting or

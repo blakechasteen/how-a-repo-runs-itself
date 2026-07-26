@@ -134,12 +134,54 @@ just flips to `consumed`), and a decline's **why** is per-file free text that
 doesn't aggregate. The disposition-census (`tools/brief_disposition_census.py`)
 measures what it can from status + git; this surface captures the rest.
 
-`tools/brief_disposition.py record <brief> --kind reshaped|declined|deferred|accepted
+`tools/brief_disposition.py record <brief> --kind reshaped|declined|deferred|accepted|bounced
 --why "…" --sid8 <you> [--into <successor>]` appends a small append-only event
 record to `handoff/brief_dispositions/<ts>__<slug>__<sid8>.json` (mirrors the
 `handoff/reattestations/` shape). The census reads them back — reshape becomes a
 real (opt-in *floor*) count, the whys aggregate — and `hololoom_fleet`'s
 `open_briefs.disposition` headline surfaces `reshape_recorded`.
+
+### `bounced` — the attempt died, the brief stays open
+
+The four pickup-time kinds record what a session decided *before* working. A
+fifth event sits between them and the terminal lifecycle: a session **accepted**
+a brief, **attempted** the work, and the **attempt died** — approach disproven,
+blocked at merge, budget exhausted. The brief correctly stays `open` (the
+*proposal* didn't fail; the *attempt* did), but it then re-surfaces looking
+identical to a brief nobody ever touched — the census's `--reason` drainability
+cut files a twice-bounced brief under `ready` exactly as fresh as an untried one.
+`bounced` splits that bucket.
+
+| kind | when | attempt made? | status after |
+|---|---|---|---|
+| `declined` | judged at pickup: won't-do | no | flips `declined` |
+| `deferred` | looked, not now | no | stays `open` |
+| `bounced` | accepted, attempted, attempt died | **yes** | stays `open` |
+
+The `--why` is the payload and should name three things: **what was tried, where
+it died, and the premise that killed it** — so a later session can see when the
+premise has changed and the approach legitimately revives.
+
+A bounce also appends one line to the brief body, because the next session
+picking a brief up reads *the brief*, not the records dir:
+
+```
+_Bounced (2026-07-24, sid8 5e73b5f7): tried X; died at Y; premise: Z_
+```
+
+`--no-note` suppresses that write. The note is deliberately **not** `_Lifecycle`
+grammar: the census's `_LIFECYCLE_RE` parses `_Lifecycle (…): status A → B` to
+infer terminal dates, and a bounce written as a fake status flip would corrupt
+that. It is append-at-EOF, idempotent, atomic, and **skipped if the brief is
+dirty in another worktree** (the merge-collision class) — in every skip case the
+event record is still written and the caller still succeeds.
+
+**A bounce is telemetry, never routing.** It does not reassign the brief, ping
+anyone, or oblige the next session to pick it up — and re-trying the dead
+approach stays permitted (that is why the why names the premise). There is **no
+auto-flip at N bounces**: the sweep/census may *surface* a bounce count as a
+retirable-candidate signal, a human confirms every flip. A `bounced` that routes
+work has become a scheduler, which this convention refuses.
 
 **Guardrails (non-negotiable — they keep the fix from becoming the disease):**
 

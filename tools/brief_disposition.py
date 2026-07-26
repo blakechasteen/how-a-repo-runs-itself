@@ -52,10 +52,14 @@ Python-3.9-compatible, fail-CLOSED on read (a malformed record is surfaced in a
 Usage:
     # record an engagement event (opt-in; run when you reshape/decline/defer a brief)
     ./.venv/bin/python tools/brief_disposition.py record <brief.md> \\
-        --kind reshaped|declined|deferred|accepted --why "..." --sid8 <you> \\
-        [--into <successor-brief.md>]
+        --kind reshaped|declined|deferred|accepted|bounced --why "..." --sid8 <you> \\
+        [--into <successor-brief.md>] [--no-note]
     # read the records back (read-only view + aggregate)
     ./.venv/bin/python tools/brief_disposition.py list [--json]
+
+`bounced` additionally appends a one-line `_Bounced (…)` note to the brief body
+(the payload has to land where the next reader reads — brief_bounced_disposition.md
+option (b)); `--no-note` suppresses that shared-file write.
 """
 from __future__ import annotations
 
@@ -72,8 +76,16 @@ from typing import Optional
 # lifecycle status (the whole point — they're invisible to the census otherwise);
 # `declined` mirrors a status the brief may ALSO flip (the record adds the
 # aggregable why the flip note can't); `accepted` is an optional explicit
-# free-acceptance marker (rare/opt-in — it de-conflates `consumed`).
-KINDS = ("reshaped", "declined", "deferred", "accepted")
+# free-acceptance marker (rare/opt-in — it de-conflates `consumed`);
+# `bounced` = accepted and ATTEMPTED, the attempt died (approach disproven,
+# blocked at merge, budget exhausted) — the brief stays `open` (the proposal
+# didn't fail, the attempt did), so it is an event no status can carry, and the
+# census's drainability cut would otherwise file a twice-bounced brief under
+# `ready` exactly as fresh as an untried one. The why names three things: what
+# was tried / where it died / the PREMISE that killed it — so a later session
+# can see when the premise changed and the approach legitimately revives. A
+# bounce informs; it never forbids a re-try, never reassigns, never auto-flips.
+KINDS = ("reshaped", "declined", "deferred", "accepted", "bounced")
 
 
 def dispositions_dir() -> Path:
@@ -164,6 +176,130 @@ def record(brief: str, kind: str, why: str, sid8: str,
         return None
 
 
+# --- the bounce body-note (option (b): route the payload to where it is read) --
+#
+# An event record alone closes the RECORDING gap and not the READING one — a
+# session picking a brief up Reads the brief, and has no reason to look in
+# handoff/brief_dispositions/. So a bounce also appends one line to the brief
+# body, mirroring the established `_Lifecycle (…)` idiom: visible on Read,
+# greppable, parseable later.
+#
+# ANTI-FOOTGUN — the grammar is `_Bounced`, deliberately NOT `_Lifecycle`.
+# brief_disposition_census._LIFECYCLE_RE matches `^\s*_Lifecycle (…): status A → B`
+# and feeds _terminal_date(); writing a bounce as a fake status flip would corrupt
+# terminal-date inference for that brief. `_Bounced` is invisible to that regex by
+# construction (different literal token).
+_BOUNCE_NOTE_PREFIX = "_Bounced ("
+_WHY_MAX = 240
+
+
+def brief_dir() -> Path:
+    return Path(os.environ.get(
+        "HOLOLOOM_BRIEF_DIR",
+        str(Path(__file__).resolve().parent.parent / "handoff" / "brief"),
+    ))
+
+
+def _resolve_brief(brief: str, bdir: Optional[Path] = None) -> Optional[Path]:
+    """Bare name / relative / absolute → the brief file, or None (mirrors brief_sweep)."""
+    p = Path(brief)
+    if p.is_absolute() and p.is_file():
+        return p
+    cand = (bdir or brief_dir()) / p.name
+    if cand.is_file():
+        return cand
+    rel = Path.cwd() / brief
+    return rel if rel.is_file() else None
+
+
+def _contended_elsewhere(path: Path) -> bool:
+    """True if this path is dirty in a DIFFERENT worktree (merge-collision class).
+
+    Best-effort: reuses fleet_view's read-only git helpers. On ANY failure it
+    returns False (write proceeds) — this surface is never-blocking, and the
+    pre-existing repo norm (brief_sweep.py flip) does no check at all, so an
+    unavailable signal must not become a new hard gate."""
+    try:
+        tools_dir = str(Path(__file__).resolve().parent)
+        if tools_dir not in sys.path:
+            sys.path.insert(0, tools_dir)
+        import fleet_view  # noqa: E402  (lazy; tolerate git/env unavailable)
+
+        here = path.resolve()
+        root = fleet_view._git_toplevel(here.parent)
+        worktrees = fleet_view._worktrees(root)
+        # which worktree holds MY copy? (the longest root that is a parent of it)
+        # (string prefix rather than Path.is_relative_to — 3.9-safe, and worktrees
+        # nest, so the LONGEST matching root is the owner)
+        mine = ""
+        for wt in worktrees:
+            wpath = wt.get("path", "")
+            if not wpath:
+                continue
+            wroot = str(Path(wpath).resolve())
+            if str(here).startswith(wroot + os.sep) and len(wroot) > len(mine):
+                mine = wroot
+        if not mine:
+            return False  # can't locate it in the worktree set — don't invent a gate
+        rel_me = str(here.relative_to(Path(mine)))
+        for wt in worktrees:
+            wpath = wt.get("path", "")
+            if not wpath or str(Path(wpath).resolve()) == mine:
+                continue  # my own tree being dirty is expected, not contention
+            if rel_me in fleet_view._dirty_paths(wpath):
+                return True
+        return False
+    except Exception:
+        return False
+
+
+def append_bounce_note(brief: str, why: str, sid8: str,
+                       bdir: Optional[Path] = None,
+                       now: Optional[_dt.datetime] = None,
+                       check_contention: bool = True) -> Optional[Path]:
+    """Append one `_Bounced (<date>, sid8 <sid8>): <why>_` line to the brief body.
+
+    Returns the brief path on write, None otherwise (not found, contended,
+    already recorded today by this session, or any failure). NEVER RAISES —
+    same never-blocking contract as record(); a body note that can't be written
+    must not cost the caller its event record.
+    """
+    try:
+        path = _resolve_brief(brief, bdir)
+        if path is None:
+            _warn(f"brief_disposition: no such brief {brief!r} — event recorded, body note skipped")
+            return None
+        if check_contention and _contended_elsewhere(path):
+            _warn(f"brief_disposition: {path.name} is dirty in another worktree — "
+                  "body note skipped (event record still written)")
+            return None
+        dt = now or _dt.datetime.now(_dt.timezone.utc)
+        one_line = " ".join((why or "").split())
+        if len(one_line) > _WHY_MAX:
+            one_line = one_line[:_WHY_MAX - 1].rstrip() + "…"
+        sid = f", sid8 {sid8}" if sid8 else ""
+        note = f"{_BOUNCE_NOTE_PREFIX}{dt.date().isoformat()}{sid}): {one_line}_"
+        text = path.read_text()
+        if note in text:
+            return None  # idempotent: identical bounce already on the file
+        out = text if text.endswith("\n") else text + "\n"
+        out += f"\n{note}\n"
+        # atomic (temp + os.replace) — a concurrent Reader never sees a half file
+        tmp = path.parent / f".{path.name}.{os.getpid()}.tmp"
+        tmp.write_text(out)
+        os.replace(str(tmp), str(path))
+        # parse-verify (frontmatter-normalizer discipline): the note landed AND
+        # the frontmatter fence is still intact (we only append, but verify anyway).
+        v = path.read_text()
+        if note not in v or not v.lstrip().startswith("---"):
+            _warn(f"brief_disposition: WARNING — post-write verify failed on {path.name}")
+            return None
+        return path
+    except Exception as e:  # noqa: BLE001 — never-blocking surface
+        _warn(f"brief_disposition: bounce note failed ({type(e).__name__}: {e})")
+        return None
+
+
 def load_records(ddir: Optional[Path] = None) -> dict:
     """Read all disposition records. READ-ONLY, fail-CLOSED: an unreadable/invalid
     record file is surfaced in `malformed`, never silently dropped.
@@ -217,9 +353,10 @@ def summarize(loaded: dict) -> dict:
         # is a raw count map, ordered by name so it never reads as a score.
         "by_brief": dict(sorted(by_brief.items())),
         "whys": whys,
-        "note": ("opt-in FLOOR, not a total — only volunteered records. reshaped + "
-                 "deferred are invisible to the lifecycle census; this is the only "
-                 "place they surface. WITNESS not KPI."),
+        "note": ("opt-in FLOOR, not a total — only volunteered records. reshaped, "
+                 "deferred and bounced are invisible to the lifecycle census (a "
+                 "bounced brief stays `open`); this is the only place they "
+                 "surface. WITNESS not KPI."),
     }
 
 
@@ -240,6 +377,15 @@ def _cmd_record(args) -> int:
     if p is None:
         return 1
     print(f"recorded {args.kind} disposition for {Path(args.brief).name} → {p}")
+    # A bounce ALSO leaves the one-line note on the brief itself — the next
+    # session picking the brief up reads the brief, not this records dir. Kept
+    # out of record() on purpose: the library call stays confined to its own
+    # append-only dir, and the shared-file write is explicit at the CLI layer.
+    # Fail-soft: a skipped note never fails the command (the event is recorded).
+    if args.kind == "bounced" and not args.no_note:
+        n = append_bounce_note(args.brief, args.why, args.sid8)
+        if n is not None:
+            print(f"  + _Bounced note appended to {n.name}")
     return 0
 
 
@@ -253,7 +399,8 @@ def _cmd_list(args) -> int:
           f"(opt-in floor; WITNESS not KPI)")
     bk = summ["by_kind"]
     print(f"  reshaped {bk['reshaped']}  |  declined {bk['declined']}  |  "
-          f"deferred {bk['deferred']}  |  accepted {bk['accepted']}"
+          f"deferred {bk['deferred']}  |  accepted {bk['accepted']}  |  "
+          f"bounced {bk['bounced']}"
           + (f"  |  other {summ['other_kind']}" if summ["other_kind"] else "")
           + (f"  |  MALFORMED {summ['malformed_n']}" if summ["malformed_n"] else ""))
     if summ["whys"]:
@@ -276,6 +423,9 @@ def main(argv=None) -> int:
     r.add_argument("--why", default="", help="what was set aside/changed and why (aggregable)")
     r.add_argument("--sid8", default="", help="recording session (first 8 of $CLAUDE_CODE_SESSION_ID)")
     r.add_argument("--into", default="", help="successor brief filename, if a reshape spun one out")
+    r.add_argument("--no-note", action="store_true",
+                   help="bounced only: skip the `_Bounced (…)` body note on the brief "
+                        "(event record still written)")
 
     l = sub.add_parser("list", help="read records back (read-only view + aggregate)")
     l.add_argument("--json", action="store_true")
