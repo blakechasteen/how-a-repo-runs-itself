@@ -38,6 +38,17 @@ Sibling to the fifth_discipline `suspended:` idea (record what a pass GAVE UP,
 not only its verdict): a decline/defer `why` is the same shape — what was set
 aside and the reason, so team-learning doesn't evaporate.
 
+SIGNED EMISSION (added 2026-07-25, Blake-directed). `record` additionally emits
+the disposition as a signed, chained peer-owned bobbin via
+`tools/disposition_sign.py` — the same judgment, but existing in the substrate as
+an act by an identified party rather than as JSON *about* one. That is the gap
+`project_ai_side_substrate_primitives` calls policy-vs-property: sessions decline
+and reshape briefs constantly, and until now none of it was signed, so the peer
+corpus held only smoke tests, rigs and exception handlers. Signing is default-on
+(`--no-sign` opts out) and fail-soft in every direction — an unsigned event is
+still a recorded event, and the guardrails above are unchanged: recording is
+still opt-in, still never blocking, still WITNESS not KPI.
+
 Design note: this is deliberately a STANDALONE tool, not a new `brief_sweep.py`
 subcommand (the brief suggested the latter). A disposition *event* is a distinct
 concern from a lifecycle *flip* (brief_sweep is "candidate surfacer + safe status
@@ -386,6 +397,32 @@ def _cmd_record(args) -> int:
         n = append_bounce_note(args.brief, args.why, args.sid8)
         if n is not None:
             print(f"  + _Bounced note appended to {n.name}")
+    # …and the disposition is ALSO emitted as a signed peer-owned bobbin, so the
+    # judgment exists in the substrate as an act by an identified party, not only
+    # as JSON about one. Same placement reasoning as the bounce note: an outward
+    # side effect (it extends a chain and posts to the Matrix transparency log)
+    # belongs at the CLI layer, never inside record().
+    #
+    # Default-ON with an escape hatch, deliberately: an opt-in inside an opt-in
+    # would never be exercised, and an unexercised refusal channel is precisely
+    # the thing this closes. Import is lazy so this module stays stdlib-only.
+    # Fail-soft — an unsigned event is still a recorded event.
+    if not args.no_sign:
+        try:
+            import disposition_sign
+        except Exception:  # noqa: BLE001 — signing is additive, never required
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            try:
+                import disposition_sign  # noqa: F811
+            except Exception as e:  # noqa: BLE001
+                _warn(f"brief_disposition: signing unavailable ({type(e).__name__}: {e})")
+                return 0
+        sig = disposition_sign.sign(
+            args.brief, args.kind, args.why, args.sid8,
+            reshaped_into=args.into, record_file=p.name)
+        if sig:
+            print(f"  + signed as {sig['peer']}/{sig['bobbin_kind']}/{sig['slug']}"
+                  + (f" (chain seq {sig['chain_seq']})" if sig.get("chain_seq") else ""))
     return 0
 
 
@@ -426,6 +463,9 @@ def main(argv=None) -> int:
     r.add_argument("--no-note", action="store_true",
                    help="bounced only: skip the `_Bounced (…)` body note on the brief "
                         "(event record still written)")
+    r.add_argument("--no-sign", action="store_true",
+                   help="skip the signed peer-bobbin emission (event record still "
+                        "written). Signing is default-on; see tools/disposition_sign.py")
 
     l = sub.add_parser("list", help="read records back (read-only view + aggregate)")
     l.add_argument("--json", action="store_true")

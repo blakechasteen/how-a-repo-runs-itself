@@ -10,7 +10,7 @@ and an AI-co-authored knowledge base keeps from collapsing into its own echo.
 ## What's in here
 
 This is a *subset*, chosen by an allowlist (deny-by-default), not a scrub of
-a full corpus. 49 files:
+a full corpus. 51 files:
 
 | Path | What |
 |---|---|
@@ -19,7 +19,7 @@ a full corpus. 49 files:
 | `hololoom_mcp_README.md` | the read-surface server this all runs over |
 | `conventions/` | the four `_CONVENTION` docs: workplan briefs, kickoff prompts, reading-lenses, the peer inbox |
 | `docs/` | worked examples (the MAST collision-class self-audit), an FAQ, three external-research surveys, LBP protocol specs |
-| `tools/` | nine of the actual mechanisms — brief sweep, cross-session coordination, the governance diff-gate, session digests, the canon citation-graph indexer |
+| `tools/` | eleven of the actual mechanisms — brief sweep, cross-session coordination, the governance diff-gate, session digests, the canon citation-graph indexer, and the disposition signer (+ its tests) |
 | `pins/` | 24 method-discipline memory pins — the load-bearing lessons, each earned by at least one incident |
 
 ## What this is *not*
@@ -33,7 +33,14 @@ a full corpus. 49 files:
 - **Not a one-way mirror of a live system's secrets.** Every file passed a
   five-gate audit (secrets scan, third-party-name scan, provenance check,
   a per-file human read, and a topology/service-disclosure scan) before it
-  shipped. See [`PROVENANCE.md`](PROVENANCE.md).
+  shipped — **with one recorded exception.** The two signing tools added
+  2026-08-04 (`tools/disposition_sign.py`, `tools/test_disposition_sign.py`,
+  and the signing extension to `tools/brief_disposition.py`) cleared the four
+  mechanical gates, and their three disclosure questions were each ruled on
+  individually — but the per-file human read was **deliberately waived**, not
+  performed. It is named here rather than smoothed over, because a gate you
+  skipped and a gate you passed are different facts. See
+  [`PROVENANCE.md`](PROVENANCE.md).
 
 ## Provenance & how this was emitted
 

@@ -58,18 +58,18 @@ reader, is what closes the gap.
 
 ## Divergence from the live system
 
-Four kinds, all deliberate. This list is **derived, not recalled** — every
+Five kinds, all deliberate. This list is **derived, not recalled** — every
 published file was diffed against its live original, and the result is the
-accounting below: 42 byte-identical, 7 differing (enumerated here), 5 with no
+accounting below: 44 byte-identical, 7 differing (enumerated here), 5 with no
 live counterpart because this mirror wrote them (`README.md`, `PROVENANCE.md`,
 `LICENSE`, `LICENSE-docs`, `.gitignore`). Two earlier versions of this section
 claimed completeness and were wrong; stating the method is the repair, since
 it makes the claim checkable rather than trusted.
 
-**Synced against live at `b92ac56`.** Four files that had drifted behind live
-were re-synced on 2026-07-25 and the whole subset re-gated (see *Sync point*
-below). Naming the commit is deliberate: it turns "is this current?" from a
-judgment into a diff anyone can run.
+**Synced against live at `29368ec`** (2026-08-04), superseding the `b92ac56`
+pin. Naming the commit is deliberate: it turns "is this current?" from a
+judgment into a diff anyone can run. **One file is knowingly behind it** — see
+*Sync point*.
 
 1. **Genericized credential — 2 files.** `tools/spine_tier.py` and
    `tools/index_canon_graph.py` differ from their live originals by one line
@@ -99,6 +99,24 @@ judgment into a diff anyone can run.
    table; contents byte-identical to live at the sync point — the divergence
    is the name, nothing else.
 
+5. **A published tool with a deliberately unpublished dependency — 1 file.**
+   `tools/disposition_sign.py` emits each brief disposition as a signed,
+   chained peer-owned bobbin. Its signing path needs
+   `bobbins._shared.{chain, peer_identity, peer_owned_bobbin}` and shells out
+   to a second repository's interpreter (`$PARA_BOTS_ROOT`, default
+   `~/para-bots`). **That repository is not published**, and deny-by-default
+   means a file does not ship because something else references it. So the
+   tool is here and its mechanism is not.
+
+   This is disclosed rather than hidden because the failure is graceful and
+   self-describing: with the dependency absent, `sign()` prints the missing
+   interpreter, reports the event as recorded-but-NOT-signed, returns `None`,
+   and never raises; the test suite runs 20 cases and skips 5 rather than
+   failing. What survives publication is the *reasoning* — why a per-session
+   ephemeral key rather than a standing fleet key, and why signing as a named
+   peer would be forgery — which is the part with method value. Read it as an
+   argument you can check, not a dependency you can install.
+
 ## Sync point
 
 Four files had drifted behind live and were re-synced at `b92ac56`:
@@ -109,14 +127,33 @@ fixed), `tools/brief_disposition.py` and `conventions/brief_CONVENTION.md`
 bytes — secrets scan clean, no third-party-human disclosure, topology
 unchanged at 20 accepted findings with zero absolute paths.
 
-**One thing deliberately left out of this sync.** Live has since extended
-`brief_disposition.py` to emit each disposition as a signed, chained
-peer-owned bobbin. That extension imports `tools/disposition_sign.py`, which
-is **not** in this published subset — and this emission is deny-by-default, so
-a file does not ship because something else references it. Publishing the
-extension without its dependency would ship an instruction whose mechanism is
-absent. It waits for a slice that carries both, gated on its own terms. The
-copy here is therefore complete and self-consistent rather than current.
+**The 2026-08-04 slice, and the gate that did not run.** That earlier sync
+deliberately held back live's signing extension to `brief_disposition.py`,
+because its dependency was unpublished. It now ships anyway, together with
+`tools/disposition_sign.py` and `tools/test_disposition_sign.py` — divergence
+kind 5 above — after the four mechanical gates passed on those exact bytes
+(pinned by content hash in the private manifest, not by commit) and after
+three disclosure questions were each ruled on individually: naming an AI peer
+in the design rationale, publishing the key-store *location* the tests
+reference, and shipping a tool whose mechanism stays private.
+
+**The per-file human read — gate 4 of the five — was deliberately waived for
+these three files.** It was not performed, and this is not a case of it being
+performed lightly. The operator was offered the standard full-read
+ratification, declined it, and chose to record a waiver instead. Everything
+else in this repository carries that read; these do not. The distinction is
+stated because *a gate you skipped and a gate you passed are different facts*,
+and the audit trail is worth nothing if it flattens them. The one thing that
+read has historically caught here — a live database password sitting in plain
+sight where the automated secrets scan saw nothing unusual — is exactly the
+class no mechanical gate covers.
+
+**One file is knowingly behind the `29368ec` pin.**
+`docs/how_this_repo_runs_itself.md` is 34 lines short of live, which added a
+passage on negative-claim controls (`009cccb`, 2026-07-30). It is a pure
+addition; nothing here was removed upstream. It was not re-synced because it
+is the *first* slice's artifact under its own ratification, and this slice's
+waiver does not reach it. Recorded rather than quietly reconciled.
 
 That is the general shape: **this mirror is a pinned, self-consistent subset,
 not a live tree.** Anything in `tools/` is best read as *how the method
